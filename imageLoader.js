@@ -9,14 +9,14 @@
 	}
 	
 	$.extend(ImageCollection.prototype,{
-		add : function(object,options){
+		add : function(ctx,object,options){
 			var self = this;
 			
 			if (object instanceof ImageCollection){
 				this.collection.push(object);
 			} else if (object instanceof $) {
 				object.each(function(){
-					self.collection.push(new ImageInstance($(this),options));
+					self.collection.push(new ImageInstance(ctx,$(this),options));
 				});
 			}
 		},
@@ -130,7 +130,7 @@
 	$.fn.activateImageLoader = function(options){
 		return this.each(function(){
 			var context = $(this);
-			
+
 			ImageInstance.imagesToLoad.add(context,context.find('img[data-imageLoaderSrc]'),options);
 			windowUpdate();
 		});

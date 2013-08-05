@@ -1,6 +1,23 @@
 (function($){
 	var Timeout = 3000,
-		$Window = $(window);
+		$Window = $(window),
+		push = Array.prototype.push,
+		toArray = function(a){
+			if (a instanceof Array){
+				return a;
+			} else if (a.length) {
+				var r = [];
+				
+				push.apply(r,a);
+				
+				return r;
+			}
+			
+			return [a];
+		},
+		concat = function(a,b){
+			return toArray(a).concat(toArray(b));
+		};
 	
 	function ImageCollection(){
 		$.extend(this,{
@@ -50,12 +67,13 @@
 			var self = this,
 				promise = $.Deferred(),
 				src = !!newSrc ? (self.src = newSrc) : self.src,
-				fn = !!newFn ? (self.fn = newFn) : self.fn;
+				fn = !!newFn ? (self.fn = newFn) : self.fn,
+				cached = ImageInstance.cache[src];
 				
-			if (ImageInstance.cache[src]){
+			if (!!cached){
 				setTimeout(function(){
-					!!fn && fn.apply(self,ImageInstance.cache[src].args);
-					promise.resolve(self);
+					!!fn && fn.apply(self,cached.args);
+					promise.resolve.apply(promise,cached.args);
 				},0);
 			} else {
 				var nImage = new Image(),
@@ -70,9 +88,10 @@
 				
 				nImage.onload = function(){
 					ImageInstance.cache[src] = self;
-					self.args = arguments;
-					!!fn && fn.apply(self,arguments);
-					promise.resolve(self);
+					self.args = concat(this,arguments);
+					
+					!!fn && fn.apply(self,self.args);
+					promise.resolve.apply(promise,self.args);
 				};
 				nImage.src = src;
 			}
@@ -105,15 +124,19 @@
 				$context.addClass('imageLoader-Loading');
 				$element.addClass('imageLoader-Loading');
 				
-				ctx.load($element.data('imageloadersrc')).done(function(){
+				ctx.load($element.data('imageloadersrc')).done(function(img){
 					$context
 						.removeClass('imageLoader-Loading');
 					
 					$element
 						.removeClass('imageLoader-Loading')
-						.attr('src',ctx.src)
+						.attr({
+							src : ctx.src,
+							width : img.width,
+							height : img.height
+						})
 						.removeAttr('data-imageloadersrc');
-					}).fail(function(){
+				}).fail(function(){
 					ImageInstance.imagesToLoad.add(ctx);
 				});
 				
